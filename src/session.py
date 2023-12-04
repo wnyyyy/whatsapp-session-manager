@@ -1,14 +1,19 @@
 from threading import Lock, Thread
-import time
+from consts import PAGE_LOAD_TIMEOUT_SECONDS
 import util
 from selenium.webdriver.chrome.service import Service
-from selenium import webdriver
+from selenium.webdriver import ChromeOptions, Chrome
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
 
 class Session:
     def __init__(self, name: str, service: Service):
         self.name = name
         self.running = False
-        self.logged_in = False
+        self.logged_in = None
         self.thread = None
         self.service = service
         self.lock = Lock()
@@ -21,7 +26,7 @@ class Session:
                     self.thread.join()
                 self.thread = None
                 self.running = False
-                self.logged_in = False
+                self.logged_in = None
         finally:
             self.lock.release()
         
@@ -37,16 +42,32 @@ class Session:
         
     def _run(self):
         session_path = util.get_session_path(self.name)
-        chrome_options = webdriver.ChromeOptions()
+        chrome_options = ChromeOptions()
         chrome_options.add_argument(f'--user-data-dir={session_path}')
                
-        driver = webdriver.Chrome(service=self.service, options=chrome_options)
+        driver = Chrome(service=self.service, options=chrome_options)
         driver.get('https://web.whatsapp.com')
         
         try:
             self.lock.acquire()
             self.running = True
+            self.driver = driver
         finally:
             self.lock.release()
         
-        time.sleep(9999)
+        self._try_login()
+        
+    def _try_login(self):
+        try:
+            WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT_SECONDS).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
+            )
+            self.logged_in = False
+        except TimeoutException:
+            try:
+                WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
+                )
+                self.logged_in = True
+            except TimeoutException:
+                self.logged_in = None
