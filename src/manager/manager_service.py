@@ -1,6 +1,6 @@
 import os
-import util
-import consts
+import common.util as util
+import common.consts as consts
 import json
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager

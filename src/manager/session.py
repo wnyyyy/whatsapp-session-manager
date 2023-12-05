@@ -1,6 +1,6 @@
 from threading import Lock, Thread
-from consts import PAGE_LOAD_TIMEOUT_SECONDS
-import util
+import common.consts as consts
+import common.util as util
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver import ChromeOptions, Chrome
 from selenium.webdriver.common.by import By
@@ -59,13 +59,13 @@ class Session:
         
     def _try_login(self):
         try:
-            WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT_SECONDS).until(
+            WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
             )
             self.logged_in = False
         except TimeoutException:
             try:
-                WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT_SECONDS).until(
+                WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
                 )
                 self.logged_in = True

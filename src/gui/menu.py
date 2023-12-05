@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem
 
-class Gui(QMainWindow):
+class Menu(QMainWindow):
     def __init__(self, manager):
         super().__init__()
         self.manager = manager

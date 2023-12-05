@@ -1,12 +1,12 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from gui import Gui
-from manager_service import ManagerService
+from gui.menu import Menu
+from manager.manager_service import ManagerService
 
 def main():
     app = QApplication(sys.argv)
     manager = ManagerService()
-    window = Gui(manager)
+    window = Menu(manager)
     window.show()
     sys.exit(app.exec_())
 
