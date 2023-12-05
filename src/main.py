@@ -1,12 +1,14 @@
-
-import asyncio
+import sys
+from PyQt5.QtWidgets import QApplication
 from gui import Gui
 from manager_service import ManagerService
 
-        
-async def main():
+def main():
+    app = QApplication(sys.argv)
     manager = ManagerService()
-    Gui(manager).menu()
+    window = Gui(manager)
+    window.show()
+    sys.exit(app.exec_())
 
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    main()
