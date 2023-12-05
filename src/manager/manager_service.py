@@ -4,7 +4,7 @@ import common.consts as consts
 import json
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from session import Session
+from manager.session import Session
 
 class ManagerService:
     def __init__(self):
