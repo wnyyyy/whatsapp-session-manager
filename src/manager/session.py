@@ -25,7 +25,10 @@ class Session:
             self.lock.acquire()
             if self.running:
                 if self.driver is not None:
-                    self.driver.close()
+                    try:
+                        self.driver.close()
+                    except:
+                        pass
                     self.driver = None
                 self.thread = None
                 self.running = False
