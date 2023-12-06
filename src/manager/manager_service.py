@@ -10,7 +10,7 @@ class ManagerService:
     def __init__(self):
         self.sessions = []
         self.service = Service(ChromeDriverManager().install())
-        self._load_sessions()    
+        self._load_sessions()
         
     def create_session(self, session_name, session_number):
         session_path = util.get_session_path(session_name)
@@ -25,6 +25,7 @@ class ManagerService:
             json.dump(sessions, file, indent=2)
         session = Session(session_name, session_number, self.service)
         self.sessions.append(session)
+        self._create_csv()
         return session
     
     def _load_sessions(self):
@@ -39,4 +40,14 @@ class ManagerService:
         for session in sessions:
             s = Session(session['name'], session['number'], self.service)
             self.sessions.append(s)
+        self._create_csv()
+            
+    def _create_csv(self):
+        csv_path = consts.WORK_DIR + '/contacts.csv'
+        csv_str = consts.CSV_HEADER
+        for session in self.sessions:
+            csv_str += (f'Bot {util.format_name(session.name)},Bot {util.format_name(session.name)},,,,,,,,,,,,,,,,,,,,,,,,,,,* myContacts,Mobile,{util.format_number(session.number)}\n')
+        with open(csv_path, 'w') as file:
+            file.write(csv_str)
+        
         
