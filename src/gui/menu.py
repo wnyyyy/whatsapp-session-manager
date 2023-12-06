@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt5.QtCore import Qt, QTimer
-
+import re
 from gui.execute_button import ExecuteButton
 
 class Menu(QMainWindow):
@@ -92,7 +92,7 @@ class Menu(QMainWindow):
     def save_session(self):
         session_name = self.name_input.text()
         session_number = self.number_input.text()
-        if session_name != '' and session_number != '' and all(session_name != s.name for s in self.manager.sessions) and session_name.isalnum():
+        if session_name != '' and session_number != '' and all(session_name != s.name for s in self.manager.sessions) and re.match(r'^\w+$', session_name):
             self.manager.create_session(session_name, session_number)
             self.create_table()
         self.toggle_create_session_view()
