@@ -7,6 +7,7 @@ class Menu(QMainWindow):
     def __init__(self, manager):
         super().__init__()
         self.manager = manager
+        self.is_creating_session = False
         self.initUI()
         self.start_polling()
 
@@ -20,12 +21,24 @@ class Menu(QMainWindow):
         self.create_table()
         layout.addWidget(self.table)
         
-        self.nameInput = QLineEdit(self)        
-        layout.addWidget(self.nameInput)
+        self.name_input = QLineEdit(self)     
+        self.name_input.setPlaceholderText('Name')
+        self.name_input.hide()   
+        layout.addWidget(self.name_input)
+        
+        self.number_input = QLineEdit(self)     
+        self.number_input.setPlaceholderText('Number')
+        self.number_input.hide()   
+        layout.addWidget(self.number_input)
 
-        createButton = QPushButton('Create Session', self)
-        createButton.clicked.connect(self.createSession)
-        layout.addWidget(createButton)
+        self.create_button = QPushButton('Create Session', self)
+        self.create_button.clicked.connect(self.create_session)
+        layout.addWidget(self.create_button)
+        
+        self.cancel_button = QPushButton('Cancel', self)
+        self.cancel_button.clicked.connect(self.cancel_create_session)
+        self.cancel_button.hide()
+        layout.addWidget(self.cancel_button)
 
         container = QWidget()
         container.setLayout(layout)
@@ -74,11 +87,35 @@ class Menu(QMainWindow):
             
             logged_in_item = QTableWidgetItem(str(session.logged_in))
             logged_in_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 3, logged_in_item)     
+            self.table.setItem(i, 3, logged_in_item)
+            
+    def save_session(self):
+        session_name = self.name_input.text()
+        session_number = self.number_input.text()
+        if session_name != '' and session_number != '' and all(session_name != s.name for s in self.manager.sessions) and session_name.isalnum():
+            self.manager.create_session(session_name, session_number)
+            self.create_table()
+        self.toggle_create_session_view()
 
-    def createSession(self):
-        session_name = self.nameInput.text()
-        if session_name != '' and all(session_name != s.name for s in self.manager.sessions) and session_name.isalnum():
-            self.manager.create_session(session_name, '00000000000')
-        self.create_table()
-        self.nameInput.clear()
+    def create_session(self):
+        self.toggle_create_session_view()
+        
+    def cancel_create_session(self):
+        self.toggle_create_session_view()
+        
+    def toggle_create_session_view(self):
+        if self.is_creating_session:
+            self.name_input.hide()
+            self.number_input.hide()
+            self.cancel_button.hide()
+            self.create_button.setText('Create Session')
+            self.create_button.clicked.disconnect()
+            self.create_button.clicked.connect(self.create_session)
+        else:
+            self.name_input.show()
+            self.number_input.show()
+            self.cancel_button.show()
+            self.create_button.setText('Save')
+            self.create_button.clicked.disconnect()
+            self.create_button.clicked.connect(self.save_session)
+        self.is_creating_session = not self.is_creating_session
