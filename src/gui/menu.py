@@ -50,6 +50,7 @@ class Menu(QMainWindow):
             btn_widget = QWidget()
             btn_widget.setLayout(btn_layout)
             self.table.setCellWidget(i, 3, btn_widget)
+            self.table.setRowHeight(i, button.btn.sizeHint().height()*2)
         
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
@@ -58,4 +59,5 @@ class Menu(QMainWindow):
 
     def createSession(self):
         session_name = self.nameInput.text()
-        self.manager.create_session(session_name)
+        if session_name != '' and session_name not in self.manager.sessions and session_name.isalnum():
+            self.manager.create_session(session_name)
