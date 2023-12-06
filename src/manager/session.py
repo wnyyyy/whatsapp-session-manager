@@ -10,8 +10,9 @@ from selenium.common.exceptions import TimeoutException
 
 
 class Session:
-    def __init__(self, name: str, service: Service):
+    def __init__(self, name: str, number: str, service: Service):
         self.name = name
+        self.number = number
         self.running = False
         self.logged_in = None
         self.thread = None
