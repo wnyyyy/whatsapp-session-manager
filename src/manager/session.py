@@ -15,6 +15,7 @@ class Session:
         self.running = False
         self.logged_in = None
         self.thread = None
+        self.driver = None
         self.service = service
         self.lock = Lock()
         
@@ -27,6 +28,9 @@ class Session:
                         self.thread.join()
                     except:
                         pass
+                if self.driver is not None:
+                    self.driver.close()
+                    self.driver = None
                 self.thread = None
                 self.running = False
                 self.logged_in = None
@@ -61,6 +65,7 @@ class Session:
             
             self._try_login()
         except:
+            driver.close()
             self.quit()
         
     def _try_login(self):
