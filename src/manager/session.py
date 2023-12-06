@@ -23,11 +23,6 @@ class Session:
         try:
             self.lock.acquire()
             if self.running:
-                if self.thread is not None:
-                    try:
-                        self.thread.join()
-                    except:
-                        pass
                 if self.driver is not None:
                     self.driver.close()
                     self.driver = None
@@ -65,7 +60,6 @@ class Session:
             
             self._try_login()
         except:
-            driver.close()
             self.quit()
         
     def _try_login(self):
