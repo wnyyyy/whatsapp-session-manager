@@ -71,7 +71,7 @@ class Session:
         except TimeoutException:
             try:
                 WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search or start new chat"]'))
                 )
                 self.logged_in = True
             except TimeoutException:
