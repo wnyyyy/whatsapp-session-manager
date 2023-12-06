@@ -23,7 +23,10 @@ class Session:
             self.lock.acquire()
             if self.running:
                 if self.thread is not None:
-                    self.thread.join()
+                    try:
+                        self.thread.join()
+                    except:
+                        pass
                 self.thread = None
                 self.running = False
                 self.logged_in = None
@@ -41,21 +44,24 @@ class Session:
             self.lock.release()
         
     def _run(self):
-        session_path = util.get_session_path(self.name)
-        chrome_options = ChromeOptions()
-        chrome_options.add_argument(f'--user-data-dir={session_path}')
-               
-        driver = Chrome(service=self.service, options=chrome_options)
-        driver.get('https://web.whatsapp.com')
-        
         try:
-            self.lock.acquire()
-            self.running = True
-            self.driver = driver
-        finally:
-            self.lock.release()
-        
-        self._try_login()
+            session_path = util.get_session_path(self.name)
+            chrome_options = ChromeOptions()
+            chrome_options.add_argument(f'--user-data-dir={session_path}')
+                
+            driver = Chrome(service=self.service, options=chrome_options)
+            driver.get('https://web.whatsapp.com')
+            
+            try:
+                self.lock.acquire()
+                self.running = True
+                self.driver = driver
+            finally:
+                self.lock.release()
+            
+            self._try_login()
+        except:
+            self.quit()
         
     def _try_login(self):
         try:
