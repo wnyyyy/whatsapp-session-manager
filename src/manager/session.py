@@ -36,6 +36,7 @@ class Session:
                 self.thread = None
                 self.running = False
                 self.logged_in = None
+                self.context = WhatsAppContext.NONE
         finally:
             self.lock.release()
         
