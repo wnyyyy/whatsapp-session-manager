@@ -54,6 +54,7 @@ class Menu(QMainWindow):
         self.table.setRowCount(len(self.manager.sessions))
         self.table.setHorizontalHeaderLabels(['Session', 'Number', 'Running', 'Logged In', 'Context', None])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self._buttons = []
         for i, session in enumerate(self.manager.sessions):
             name_item = QTableWidgetItem(session.name) 
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)              
@@ -90,7 +91,8 @@ class Menu(QMainWindow):
             btn_widget = QWidget()
             btn_widget.setLayout(btn_layout)
             self.table.setCellWidget(i, 5, btn_widget)
-            self.table.setRowHeight(i, button.btn.sizeHint().height()*2)            
+            self.table.setRowHeight(i, button.btn.sizeHint().height()*2)     
+            self._buttons.append(button)       
         
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
@@ -105,6 +107,8 @@ class Menu(QMainWindow):
             logged_in_item.setTextAlignment(Qt.AlignCenter)
             logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(i, 3, logged_in_item)
+            
+            self._buttons[i].swap_state(session.running)            
             
     def save_session(self):
         session_name = self.name_input.text()
