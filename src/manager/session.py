@@ -17,7 +17,7 @@ class Session:
         self.number = number
         self.running = False
         self.logged_in = None
-        self.context = None
+        self.context = WhatsAppContext.NONE
         self.thread = None
         self.driver = None
         self.service = service
