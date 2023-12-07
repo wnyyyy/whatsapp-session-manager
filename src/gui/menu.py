@@ -1,7 +1,9 @@
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt5.QtCore import Qt, QTimer
 import re
+import common.consts as consts
 from gui.execute_button import ExecuteButton
+from common.enum import WhatsAppContext
 
 class Menu(QMainWindow):
     def __init__(self, manager):
@@ -47,7 +49,7 @@ class Menu(QMainWindow):
     def start_polling(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_table)
-        self.timer.start(100)
+        self.timer.start(consts.UI_REFRESH_RATE)
         
     def create_table(self):
         self.table.setRowCount(0)
@@ -56,19 +58,29 @@ class Menu(QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self._buttons = []
         for i, session in enumerate(self.manager.sessions):
-            name_item = QTableWidgetItem(session.name) 
+            try:
+                session.lock.acquire()
+                name = session.name
+                number = session.number
+                running = session.running
+                logged_in = session.logged_in
+                context = session.context
+                button = ExecuteButton(session)
+            finally:
+                session.lock.release()
+                
+            name_item = QTableWidgetItem(name) 
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)              
             self.table.setItem(i, 0, name_item)
             
-            number_item = QTableWidgetItem(session.number)
+            number_item = QTableWidgetItem(number)
             number_item.setTextAlignment(Qt.AlignCenter)         
             number_item.setFlags(number_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 1, number_item)
             self.table.setColumnWidth(1, 150)
             
-            self._update_session_row(i, session)
+            self._update_session_row(i, running, logged_in, context)            
             
-            button = ExecuteButton(session)
             btn_layout = QHBoxLayout()            
             btn_layout.addWidget(button.btn)
             btn_layout.setAlignment(Qt.AlignCenter)
@@ -80,23 +92,33 @@ class Menu(QMainWindow):
         
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
-            self._update_session_row(i, session)            
-            self._buttons[i].swap_state(session.running)        
+            try:
+                session.lock.acquire()
+                running = session.running
+                logged_in = session.logged_in
+                context = session.context
+            finally:
+                session.lock.release()
             
-    def _update_session_row(self, i, session):
-        running = "Yes" if session.running else "No"
+            self._update_session_row(i, running, logged_in, context)
+            self._buttons[i].swap_state(running)        
+            
+    def _update_session_row(self, i, running: bool, logged_in: bool, context: WhatsAppContext):
+        running = "Yes" if running else "No"
+        logged_in = "Yes" if logged_in else "No" if logged_in is not None else "Unknown"
+        context = context.name
+        
         running_item = QTableWidgetItem(running)
         running_item.setTextAlignment(Qt.AlignCenter)
         running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)
         self.table.setItem(i, 2, running_item)
-
-        logged_in = "Yes" if session.logged_in else "No" if session.logged_in is not None else "Unknown"
+        
         logged_in_item = QTableWidgetItem(logged_in)
         logged_in_item.setTextAlignment(Qt.AlignCenter)
         logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)
         self.table.setItem(i, 3, logged_in_item)
 
-        context_item = QTableWidgetItem(str(session.context.name))
+        context_item = QTableWidgetItem(context)
         context_item.setTextAlignment(Qt.AlignCenter)
         context_item.setFlags(context_item.flags() & ~Qt.ItemIsEditable)
         self.table.setItem(i, 4, context_item)
