@@ -114,7 +114,7 @@ class Menu(QMainWindow):
             self.name_input.clear()
             self.number_input.clear()
             self.create_table()
-        self.toggle_create_session_view()
+            self.toggle_create_session_view()
 
     def create_session(self):
         self.toggle_create_session_view()
