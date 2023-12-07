@@ -66,23 +66,7 @@ class Menu(QMainWindow):
             self.table.setItem(i, 1, number_item)
             self.table.setColumnWidth(1, 150)
             
-            running = "Yes" if session.running else "No"
-            running_item = QTableWidgetItem(running)
-            running_item.setTextAlignment(Qt.AlignCenter)
-            running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)   
-            self.table.setItem(i, 2, running_item)
-            
-            logged_in = "Yes" if session.logged_in else "No" if session.logged_in is not None else "Unknown"
-            logged_in_item = QTableWidgetItem(logged_in)
-            logged_in_item.setTextAlignment(Qt.AlignCenter)
-            logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)   
-            self.table.setItem(i, 3, logged_in_item)
-            
-            context_item = QTableWidgetItem(str(session.context.name))
-            context_item.setTextAlignment(Qt.AlignCenter)
-            context_item.setFlags(context_item.flags() & ~Qt.ItemIsEditable)   
-            self.table.setItem(i, 4, context_item)
-            self.table.setColumnWidth(4, 200)
+            self._update_session_row(i, session)
             
             button = ExecuteButton(session)
             btn_layout = QHBoxLayout()            
@@ -96,19 +80,27 @@ class Menu(QMainWindow):
         
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
-            running = "Yes" if session.running else "No"
-            running_item = QTableWidgetItem(running)
-            running_item.setTextAlignment(Qt.AlignCenter)      
-            running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)      
-            self.table.setItem(i, 2, running_item)
+            self._update_session_row(i, session)            
+            self._buttons[i].swap_state(session.running)        
             
-            logged_in = "Yes" if session.logged_in else "No" if session.logged_in is not None else "Unknown"
-            logged_in_item = QTableWidgetItem(logged_in)
-            logged_in_item.setTextAlignment(Qt.AlignCenter)
-            logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(i, 3, logged_in_item)
-            
-            self._buttons[i].swap_state(session.running)            
+    def _update_session_row(self, i, session):
+        running = "Yes" if session.running else "No"
+        running_item = QTableWidgetItem(running)
+        running_item.setTextAlignment(Qt.AlignCenter)
+        running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)
+        self.table.setItem(i, 2, running_item)
+
+        logged_in = "Yes" if session.logged_in else "No" if session.logged_in is not None else "Unknown"
+        logged_in_item = QTableWidgetItem(logged_in)
+        logged_in_item.setTextAlignment(Qt.AlignCenter)
+        logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)
+        self.table.setItem(i, 3, logged_in_item)
+
+        context_item = QTableWidgetItem(str(session.context.name))
+        context_item.setTextAlignment(Qt.AlignCenter)
+        context_item.setFlags(context_item.flags() & ~Qt.ItemIsEditable)
+        self.table.setItem(i, 4, context_item)
+        self.table.setColumnWidth(4, 200)
             
     def save_session(self):
         session_name = self.name_input.text()
