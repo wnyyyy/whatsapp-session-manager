@@ -75,8 +75,48 @@ class Session:
         except TimeoutException:
             try:
                 WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search or start new chat"]'))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
                 )
                 self.logged_in = True
             except TimeoutException:
                 self.logged_in = None
+        self.get_contact('+55 62 8160-0359')
+                
+    def get_contact(self, contact):
+        try:
+            self.lock.acquire()
+            if not self.running:
+                return None
+            try:
+                search_box = WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Search input textbox"]'))
+                )
+                search_box.click()
+                search_box.send_keys(contact)
+            except TimeoutException:
+                return None
+            
+            try:
+                side_pane = WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.ID, 'pane-side'))
+                )
+            except:
+                return None
+            
+            try:
+                WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search results."]'))
+                )
+                search_results = side_pane.find_element(By.CSS_SELECTOR, '[aria-label="Search results."]')
+                if search_results is None:
+                    return False
+                search_results = search_results.find_elements(By.XPATH, "./*")
+                if len(search_results) >= 2:
+                    print("MAIS DE UM CONTATO ENCONTRADO!!!!111!")
+                    input()
+                contact = search_results[1]
+                return True
+            except:
+                return None
+        finally:
+            self.lock.release()
