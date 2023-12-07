@@ -14,7 +14,7 @@ class Menu(QMainWindow):
     def initUI(self):
         self.setWindowTitle('Session Manager')
         self.setGeometry(625, 325, 600, 400)
-        self.resize(650, 400)
+        self.resize(850, 400)
         
         layout = QVBoxLayout()
         self.table = QTableWidget(0, 6)
@@ -81,6 +81,7 @@ class Menu(QMainWindow):
             context_item.setTextAlignment(Qt.AlignCenter)
             context_item.setFlags(context_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 4, context_item)
+            self.table.setColumnWidth(4, 200)
             
             button = ExecuteButton(session)
             btn_layout = QHBoxLayout()            
