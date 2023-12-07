@@ -54,20 +54,25 @@ class Menu(QMainWindow):
         self.table.setRowCount(len(self.manager.sessions))
         self.table.setHorizontalHeaderLabels(['Session', 'Number', 'Running', 'Logged In', None])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for i, session in enumerate(self.manager.sessions):            
-            self.table.setItem(i, 0, QTableWidgetItem(session.name))
+        for i, session in enumerate(self.manager.sessions):
+            name_item = QTableWidgetItem(session.name) 
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)              
+            self.table.setItem(i, 0, name_item)
             
             number_item = QTableWidgetItem(session.number)
-            number_item.setTextAlignment(Qt.AlignCenter)            
+            number_item.setTextAlignment(Qt.AlignCenter)         
+            number_item.setFlags(number_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 1, number_item)
             self.table.setColumnWidth(1, 150)
             
             running_item = QTableWidgetItem(str(session.running))
-            running_item.setTextAlignment(Qt.AlignCenter)            
+            running_item.setTextAlignment(Qt.AlignCenter)
+            running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 2, running_item)
             
             logged_in_item = QTableWidgetItem(str(session.logged_in))
             logged_in_item.setTextAlignment(Qt.AlignCenter)
+            logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 3, logged_in_item)
             
             button = ExecuteButton(session)
@@ -82,11 +87,13 @@ class Menu(QMainWindow):
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
             running_item = QTableWidgetItem(str(session.running))
-            running_item.setTextAlignment(Qt.AlignCenter)            
+            running_item.setTextAlignment(Qt.AlignCenter)      
+            running_item.setFlags(running_item.flags() & ~Qt.ItemIsEditable)      
             self.table.setItem(i, 2, running_item)
             
             logged_in_item = QTableWidgetItem(str(session.logged_in))
             logged_in_item.setTextAlignment(Qt.AlignCenter)
+            logged_in_item.setFlags(logged_in_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(i, 3, logged_in_item)
             
     def save_session(self):
@@ -94,6 +101,8 @@ class Menu(QMainWindow):
         session_number = self.number_input.text()
         if session_name != '' and session_number != '' and all(session_name != s.name for s in self.manager.sessions) and re.match(r'^\w+$', session_name):
             self.manager.create_session(session_name, session_number)
+            self.name_input.clear()
+            self.number_input.clear()
             self.create_table()
         self.toggle_create_session_view()
 
