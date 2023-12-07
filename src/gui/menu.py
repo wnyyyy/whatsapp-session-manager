@@ -32,11 +32,11 @@ class Menu(QMainWindow):
         layout.addWidget(self.number_input)
 
         self.create_button = QPushButton('Create Session', self)
-        self.create_button.clicked.connect(self.create_session)
+        self.create_button.clicked.connect(self.toggle_create_session_view)
         layout.addWidget(self.create_button)
         
         self.cancel_button = QPushButton('Cancel', self)
-        self.cancel_button.clicked.connect(self.cancel_create_session)
+        self.cancel_button.clicked.connect(self.toggle_create_session_view)
         self.cancel_button.hide()
         layout.addWidget(self.cancel_button)
 
@@ -115,12 +115,6 @@ class Menu(QMainWindow):
             self.number_input.clear()
             self.create_table()
             self.toggle_create_session_view()
-
-    def create_session(self):
-        self.toggle_create_session_view()
-        
-    def cancel_create_session(self):
-        self.toggle_create_session_view()
         
     def toggle_create_session_view(self):
         if self.is_creating_session:
@@ -129,7 +123,7 @@ class Menu(QMainWindow):
             self.cancel_button.hide()
             self.create_button.setText('Create Session')
             self.create_button.clicked.disconnect()
-            self.create_button.clicked.connect(self.create_session)
+            self.create_button.clicked.connect(self.toggle_create_session_view)
         else:
             self.name_input.show()
             self.number_input.show()
