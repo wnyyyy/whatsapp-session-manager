@@ -6,6 +6,11 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from manager.session import Session
 
+class Options:
+    def __init__(self, sessions: list[Session], contact: str):
+        self.sessions = sessions
+        self.contact = contact
+
 class ManagerService:
     def __init__(self):
         self.sessions = []
@@ -28,6 +33,16 @@ class ManagerService:
         self._create_csv()
         return session
     
+    def run_script(self, options: Options):
+        sessions = options.sessions
+        contact = options.contact
+        
+        for session in sessions:
+            has_contact = session.contact_check(contact)
+            if not has_contact:
+                session.add_contact(contact)
+
+        
     def _load_sessions(self):
         config_path = consts.WORK_DIR + '/config.json'
         sessions = []
@@ -49,5 +64,3 @@ class ManagerService:
             csv_str += (f'Bot {util.format_name(session.name)},Bot {util.format_name(session.name)},,,,,,,,,,,,,,,,,,,,,,,,,,,* myContacts,Mobile,{util.format_number(session.number)}\n')
         with open(csv_path, 'w') as file:
             file.write(csv_str)
-        
-        
