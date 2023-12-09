@@ -3,6 +3,7 @@ from threading import Lock, Thread
 import time
 import common.consts as consts
 import common.util as util
+from queue import Queue
 from common.enum import CommandType, WhatsAppContext
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver import ChromeOptions, Chrome
@@ -17,7 +18,7 @@ class Session:
     def __init__(self, name: str, number: str, service: Service):
         self.name = name
         self.number = number
-        self._commands = []
+        self._commands = Queue()
         self.running = False
         self.logged_in = None
         self.context = WhatsAppContext.NONE
@@ -27,27 +28,12 @@ class Session:
         self.lock = Lock()
         
     def quit(self):
-        try:
-            self.lock.acquire()
-            if self.running:
-                if self.driver is not None:
-                    try:
-                        self.driver.close()
-                    except:
-                        pass
-                    self.driver = None
-                self.thread = None
-                self.running = False
-                self.logged_in = None
-                self.context = WhatsAppContext.NONE
-        finally:
-            self.lock.release()
+        self._commands.put(Command(CommandType.QUIT, {}))
+        self.thread.join()
             
     def contact_check(self, contact: str):
-        self.lock.acquire()
-        command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
-        with self.lock:
-            self._commands.append(command)
+            command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
+            self._commands.put(command)
         
     def run(self):
         try:
@@ -76,20 +62,30 @@ class Session:
                 self.lock.release()
                         
             while True:
-                try:
-                    self.lock.acquire()
-                    command = self._commands.pop(0) if len(self._commands) > 0 else None
-                finally:
-                    self.lock.release()
-                if command is CommandType.QUIT:
+                command = self._commands.get()
+                if command.type is CommandType.QUIT:
+                    self._perform_quit()
+                    self._commands.task_done()
                     break
-                elif command is CommandType.LOGIN:
+                elif command.type is CommandType.LOGIN:
                     self._try_login()
-                elif command is CommandType.CONTACT_CHECK:
+                elif command.type is CommandType.CONTACT_CHECK:
                     self._contact_check(command.args['contact'])
-                time.sleep(consts.COMMAND_READ_DELAY)
+                self._commands.task_done()
         except:
             self.quit()
+            
+    def _perform_quit(self):
+        if self.driver is not None:
+            try:
+                self.driver.close()
+            except:
+                pass
+            self.driver = None
+        self.thread = None
+        self.running = False
+        self.logged_in = None
+        self.context = WhatsAppContext.NONE
         
     def _try_login(self):
         try:

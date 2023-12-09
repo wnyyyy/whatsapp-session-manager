@@ -41,7 +41,6 @@ class ManagerService:
             has_contact = session.contact_check(contact)
             if not has_contact:
                 session.add_contact(contact)
-
         
     def _load_sessions(self):
         config_path = consts.WORK_DIR + '/config.json'
