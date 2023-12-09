@@ -59,18 +59,22 @@ class Session:
             chrome_options = ChromeOptions()
             if headless:
                 chrome_options.add_argument('--headless')
+            chrome_options.add_experimental_option("useAutomationExtension", False)
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_argument("--enable-webgl")
             chrome_options.add_argument('--window-size=1280,720')
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--disable-blink-features=AutomationControlled')
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-extensions')
             chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+            chrome_options.add_argument("user-agent=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36")
             chrome_options.add_argument(f'--executable-path={consts.WORK_DIR}/chromedriver.exe')
             chrome_options.add_argument(f'--user-data-dir={session_path}')
                 
             driver = Chrome(options=chrome_options)
-            driver.get('https://web.whatsapp.com')
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            driver.get('https://web.whatsapp.com')            
             
             try:
                 self.lock.acquire()
@@ -105,8 +109,9 @@ class Session:
         self.logged_in = None
         self.context = WhatsAppContext.NONE
         
-    def _try_login(self):
+    def _try_login(self):        
         try:
+            self.lock.acquire()
             WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
             )
@@ -121,6 +126,8 @@ class Session:
                 self.context = WhatsAppContext.HOME
             except TimeoutException:
                 self.logged_in = None
+        finally:
+            self.lock.release()
                 
     def _begin_group_creation(self):
         try:
