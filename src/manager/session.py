@@ -4,7 +4,7 @@ import time
 import common.consts as consts
 import common.util as util
 from queue import Queue
-from common.enum import CommandType, WhatsAppContext
+from common.enum import CommandType, WhatsAppContext, Error
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver import ChromeOptions, Chrome
 from selenium.webdriver.common.by import By
@@ -15,25 +15,32 @@ from selenium.common.exceptions import TimeoutException
 Command = namedtuple('Command', ['type', 'args'])
 
 class Session:    
-    def __init__(self, name: str, number: str, service: Service):
+    def __init__(self, name: str, number: str):
         self.name = name
         self.number = number
         self._commands = Queue()
+        self._responses = Queue()
         self.running = False
         self.logged_in = None
         self.context = WhatsAppContext.NONE
         self.thread = None
         self.driver = None
-        self.service = service
         self.lock = Lock()
         
     def quit(self):
         self._commands.put(Command(CommandType.QUIT, {}))
         self.thread.join()
+        
+    def get_next_response(self):
+        return self._responses.get()
             
     def contact_check(self, contact: str):
-            command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
-            self._commands.put(command)
+        command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
+        self._commands.put(command)
+        
+    def login(self):
+        command = Command(CommandType.LOGIN, {})
+        self._commands.put(command)
         
     def run(self):
         try:
@@ -43,15 +50,16 @@ class Session:
             self.thread = Thread(target=self._run)
             self.thread.start()
         finally:
-            self.lock.release()          
+            self.lock.release()
         
     def _run(self):
         try:
             session_path = util.get_session_path(self.name)
             chrome_options = ChromeOptions()
+            chrome_options.add_argument(f'--executable-path={consts.WORK_DIR}/chromedriver.exe')
             chrome_options.add_argument(f'--user-data-dir={session_path}')
                 
-            driver = Chrome(service=self.service, options=chrome_options)
+            driver = Chrome(options=chrome_options)
             driver.get('https://web.whatsapp.com')
             
             try:
@@ -118,9 +126,9 @@ class Session:
             new_group_button = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="New group"]')))
             new_group_button.click()
-            self.context = WhatsAppContext.GROUP_MEMBERS_SELECT       
+            self.context = WhatsAppContext.GROUP_MEMBERS_SELECT
         except TimeoutException:
-            return None            
+            return None
         finally:
             self.lock.release()
             
@@ -158,7 +166,7 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.HOME:
-                return None
+                return Error.UNEXPECTED_CONTEXT
             
             search_box = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Search input textbox"]')))
@@ -171,13 +179,12 @@ class Session:
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search results."]')))
             search_results = side_pane.find_element(By.CSS_SELECTOR, '[aria-label="Search results."]')
             if search_results is None:
-                return False
+                return Error.CONTACT_NOT_FOUND
             search_results = search_results.find_elements(By.XPATH, "./*")            
             if len(search_results) > 2:
-                print("MAIS DE UM CONTATO ENCONTRADO!!!!111!")
-                input()
-            return True        
+                return Error.MORE_THAN_ONE_CONTACT_FOUND
+            return True
         except:
-            return None
+            return Error.DRIVER_ERROR
         finally:
             self.lock.release()

@@ -2,8 +2,7 @@ import os
 import common.util as util
 import common.consts as consts
 import json
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from common.enum import Error
 from manager.session import Session
 
 class Options:
@@ -14,7 +13,6 @@ class Options:
 class ManagerService:
     def __init__(self):
         self.sessions = []
-        self.service = Service(ChromeDriverManager().install())
         self._load_sessions()
         
     def create_session(self, session_name, session_number):
@@ -28,7 +26,7 @@ class ManagerService:
         sessions.append({"name": session_name, "number": session_number})
         with open(config_path, 'w') as file:
             json.dump(sessions, file, indent=2)
-        session = Session(session_name, session_number, self.service)
+        session = Session(session_name, session_number)
         self.sessions.append(session)
         self._create_csv()
         return session
@@ -38,9 +36,18 @@ class ManagerService:
         contact = options.contact
         
         for session in sessions:
-            has_contact = session.contact_check(contact)
-            if not has_contact:
-                session.add_contact(contact)
+            session.run()
+            session.login()
+        for session in sessions:
+            session.contact_check(contact)
+        for session in sessions:
+            has_contact = session.get_next_response()
+            if isinstance(has_contact, Error):
+                self._handle_session_error(session, has_contact)      
+        
+    def _handle_session_error(self, session: Session, err: Error):
+        print(f'Session "{session.name}": ERRO - {err.value}')
+        session.quit()
         
     def _load_sessions(self):
         config_path = consts.WORK_DIR + '/config.json'
@@ -52,7 +59,7 @@ class ManagerService:
             with open(config_path, 'r') as file:
                 sessions = json.load(file)
         for session in sessions:
-            s = Session(session['name'], session['number'], self.service)
+            s = Session(session['name'], session['number'])
             self.sessions.append(s)
         self._create_csv()
             

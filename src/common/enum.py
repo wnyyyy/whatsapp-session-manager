@@ -12,3 +12,9 @@ class CommandType(Enum):
     LOGIN = 1
     CONTACT_CHECK = 2
     
+class Error(Enum):
+    DRIVER_ERROR = "Erro no driver"
+    UNEXPECTED_CONTEXT = "Contexto inesperado"
+    CONTACT_NOT_FOUND = "Contato não encontrado"
+    MORE_THAN_ONE_CONTACT_FOUND = "Mais de um contato encontrado (erro???)"
+    
