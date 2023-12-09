@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout, QCheckBox
 from PyQt5.QtCore import Qt, QTimer
 import re
 import common.consts as consts
@@ -19,6 +19,16 @@ class Menu(QMainWindow):
         self.resize(850, 400)
         
         layout = QVBoxLayout()
+        
+        master_controls_layout = QHBoxLayout()
+        master_controls_layout.setAlignment(Qt.AlignRight)
+        master_controls_layout.setContentsMargins(0, 0, 43, 0)
+        master_controls_layout.setSpacing(5)
+        self._master_checkbox = QCheckBox()
+        self._master_checkbox.stateChanged.connect(self._handle_master_checkbox)
+        master_controls_layout.addWidget(self._master_checkbox)
+        layout.addLayout(master_controls_layout)        
+        
         self.table = QTableWidget(0, 6)
         self.create_table()
         layout.addWidget(self.table)
@@ -32,6 +42,10 @@ class Menu(QMainWindow):
         self.number_input.setPlaceholderText('Number')
         self.number_input.hide()   
         layout.addWidget(self.number_input)
+        
+        self.run_script_button = QPushButton('Run Script', self)
+        self.run_script_button.clicked.connect(self.run_script)
+        layout.addWidget(self.run_script_button)
 
         self.create_button = QPushButton('Create Session', self)
         self.create_button.clicked.connect(self.toggle_create_session_view)
@@ -41,7 +55,7 @@ class Menu(QMainWindow):
         self.cancel_button.clicked.connect(self.toggle_create_session_view)
         self.cancel_button.hide()
         layout.addWidget(self.cancel_button)
-
+        
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
@@ -57,6 +71,7 @@ class Menu(QMainWindow):
         self.table.setHorizontalHeaderLabels(['Session', 'Number', 'Running', 'Logged In', 'Context', None])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self._buttons = []
+        self._checkboxes = []
         for i, session in enumerate(self.manager.sessions):
             try:
                 session.lock.acquire()
@@ -74,21 +89,26 @@ class Menu(QMainWindow):
             self.table.setItem(i, 0, name_item)
             
             number_item = QTableWidgetItem(number)
-            number_item.setTextAlignment(Qt.AlignCenter)         
+            number_item.setTextAlignment(Qt.AlignCenter)
             number_item.setFlags(number_item.flags() & ~Qt.ItemIsEditable)   
             self.table.setItem(i, 1, number_item)
             self.table.setColumnWidth(1, 150)
             
             self._update_session_row(i, running, logged_in, context)            
             
-            btn_layout = QHBoxLayout()            
-            btn_layout.addWidget(button.btn)
-            btn_layout.setAlignment(Qt.AlignCenter)
-            btn_widget = QWidget()
-            btn_widget.setLayout(btn_layout)
-            self.table.setCellWidget(i, 5, btn_widget)
+            action_layout = QHBoxLayout()        
+            checkbox = QCheckBox()
+            action_layout.addWidget(checkbox)    
+            action_layout.addWidget(button.btn)
+            action_layout.setAlignment(Qt.AlignCenter)
+            action_widget = QWidget()
+            action_widget.setLayout(action_layout)
+            
+            self.table.setCellWidget(i, 5, action_widget)
             self.table.setRowHeight(i, button.btn.sizeHint().height()*2)     
-            self._buttons.append(button)       
+            
+            self._buttons.append(button)
+            self._checkboxes.append(checkbox)            
         
     def update_table(self):
         for i, session in enumerate(self.manager.sessions):
@@ -101,7 +121,7 @@ class Menu(QMainWindow):
                 session.lock.release()
             
             self._update_session_row(i, running, logged_in, context)
-            self._buttons[i].swap_state(running)        
+            self._buttons[i].update_state(running)        
             
     def _update_session_row(self, i, running: bool, logged_in: bool, context: WhatsAppContext):
         running = "Yes" if running else "No"
@@ -139,6 +159,7 @@ class Menu(QMainWindow):
             self.name_input.hide()
             self.number_input.hide()
             self.cancel_button.hide()
+            self.run_script_button.show()
             self.create_button.setText('Create Session')
             self.create_button.clicked.disconnect()
             self.create_button.clicked.connect(self.toggle_create_session_view)
@@ -146,7 +167,16 @@ class Menu(QMainWindow):
             self.name_input.show()
             self.number_input.show()
             self.cancel_button.show()
+            self.run_script_button.hide()
             self.create_button.setText('Save')
             self.create_button.clicked.disconnect()
             self.create_button.clicked.connect(self.save_session)
         self.is_creating_session = not self.is_creating_session
+
+    def run_script(self):
+        pass
+    
+    def _handle_master_checkbox(self):
+        new_state = self._master_checkbox.isChecked()
+        for i, _ in enumerate(self.manager.sessions):
+            self._checkboxes[i].setChecked(new_state)
