@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 Command = namedtuple('Command', ['type', 'args'])
+Response = namedtuple('Response', ['type', 'args'])
 
 class Session:    
     def __init__(self, name: str, number: str):
@@ -166,7 +167,8 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.HOME:
-                return Error.UNEXPECTED_CONTEXT
+                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                return
             
             search_box = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Search input textbox"]')))
@@ -179,11 +181,13 @@ class Session:
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search results."]')))
             search_results = side_pane.find_element(By.CSS_SELECTOR, '[aria-label="Search results."]')
             if search_results is None:
-                return Error.CONTACT_NOT_FOUND
+                self._responses.put(Response(Error.CONTACT_NOT_FOUND, {}))
+                return
             search_results = search_results.find_elements(By.XPATH, "./*")            
             if len(search_results) > 2:
-                return Error.MORE_THAN_ONE_CONTACT_FOUND
-            return True
+                self._responses.put(Response(Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
+                return
+            self._responses.put(Response({}, {}))
         except:
             return Error.DRIVER_ERROR
         finally:

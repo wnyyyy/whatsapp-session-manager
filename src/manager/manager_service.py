@@ -43,7 +43,9 @@ class ManagerService:
         for session in sessions:
             has_contact = session.get_next_response()
             if isinstance(has_contact, Error):
-                self._handle_session_error(session, has_contact)      
+                self._handle_session_error(session, has_contact)
+            else:
+                print(f'Session "{session.name}": Contato encontrado!! 😈😈')
         
     def _handle_session_error(self, session: Session, err: Error):
         print(f'Session "{session.name}": ERRO - {err.value}')
