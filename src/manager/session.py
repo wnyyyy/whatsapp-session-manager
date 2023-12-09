@@ -43,20 +43,29 @@ class Session:
         command = Command(CommandType.LOGIN, {})
         self._commands.put(command)
         
-    def run(self):
+    def run(self, headless: bool = False):
         try:
             self.lock.acquire()
             if self.running:
                 return
-            self.thread = Thread(target=self._run)
+            self.thread = Thread(target=self._run, args=(headless,))
             self.thread.start()
         finally:
             self.lock.release()
         
-    def _run(self):
+    def _run(self, headless: bool = False):
         try:
             session_path = util.get_session_path(self.name)
             chrome_options = ChromeOptions()
+            if headless:
+                chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--window-size=1280,720')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-extensions')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
             chrome_options.add_argument(f'--executable-path={consts.WORK_DIR}/chromedriver.exe')
             chrome_options.add_argument(f'--user-data-dir={session_path}')
                 
@@ -188,6 +197,12 @@ class Session:
                 self._responses.put(Response(Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
                 return
             self._responses.put(Response({}, {}))
+            
+            time.sleep(consts.UI_INTERACTION_DELAY)
+            
+            return_button = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="search"]')))
+            return_button.click()
         except:
             return Error.DRIVER_ERROR
         finally:
