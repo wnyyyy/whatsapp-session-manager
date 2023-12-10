@@ -43,6 +43,14 @@ class Session:
         command = Command(CommandType.LOGIN, {})
         self._commands.put(command)
         
+    def begin_group_creation(self, contact: str):
+        command = Command(CommandType.BEGIN_GROUP_CREATION, {'contact': contact})
+        self._commands.put(command)
+        
+    def add_group_member(self, contact: str):
+        command = Command(CommandType.ADD_GROUP_MEMBER, {'contact': contact})
+        self._commands.put(command)
+        
     def run(self, headless: bool = False):
         try:
             self.lock.acquire()
@@ -59,6 +67,7 @@ class Session:
             chrome_options = ChromeOptions()
             if headless:
                 chrome_options.add_argument('--headless')
+            chrome_options.add_argument("--log-level=3")
             chrome_options.add_experimental_option("useAutomationExtension", False)
             chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
             chrome_options.add_argument("--enable-webgl")
@@ -117,6 +126,7 @@ class Session:
             )
             self.logged_in = False
             self.context = WhatsAppContext.LANDING_PAGE
+            self._responses.put(Response({}, {}))
         except TimeoutException:
             try:
                 WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
@@ -124,8 +134,11 @@ class Session:
                 )
                 self.logged_in = True
                 self.context = WhatsAppContext.HOME
+                self._responses.put(Response({}, {}))
             except TimeoutException:
                 self.logged_in = None
+        except:
+            self._responses.put(Response(Error.DRIVER_ERROR, {}))
         finally:
             self.lock.release()
                 
@@ -133,7 +146,8 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.HOME:
-                return None
+                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                return
             time.sleep(consts.UI_INTERACTION_DELAY)
             menu = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="menu"]')))
@@ -144,8 +158,9 @@ class Session:
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="New group"]')))
             new_group_button.click()
             self.context = WhatsAppContext.GROUP_MEMBERS_SELECT
+            self._responses.put(Response({}, {}))
         except TimeoutException:
-            return None
+            self._responses.put(Response(Error.DRIVER_ERROR, {}))
         finally:
             self.lock.release()
             
@@ -211,6 +226,6 @@ class Session:
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="search"]')))
             return_button.click()
         except:
-            return Error.DRIVER_ERROR
+            self._responses.put(Response(Error.DRIVER_ERROR, {}))
         finally:
             self.lock.release()

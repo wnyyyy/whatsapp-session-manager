@@ -11,6 +11,8 @@ class CommandType(Enum):
     QUIT = 0
     LOGIN = 1
     CONTACT_CHECK = 2
+    BEGIN_GROUP_CREATION = 3
+    ADD_GROUP_MEMBER = 4
     
 class Error(Enum):
     DRIVER_ERROR = "Erro no driver"

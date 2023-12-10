@@ -1,4 +1,5 @@
 import os
+from threading import Thread
 import common.util as util
 import common.consts as consts
 import json
@@ -32,23 +33,50 @@ class ManagerService:
         return session
     
     def run_script(self, options: Options):
+        script_thread = Thread(target=self._run_script, args=(options,))
+        script_thread.start()
+        
+    def log(self, session: Session | None, msg):
+        if session is None:
+            print(msg)
+        else:
+            print(f'Sessão "{session.name}": {msg}')
+                
+    def _run_script(self, options: Options):
         sessions = options.sessions
         contact = options.contact
+        num_groups = 1
         
         for session in sessions:
-            session.run()
+            session.run(headless=False)
             session.login()
+        for session in sessions:
+            has_logged_in = session.get_next_response()
+            if isinstance(has_logged_in.type, Error):
+                self._handle_session_error(session, has_logged_in)
+            else:
+                self.log(session, "💫 Logado com sucesso !! 💫")
+                
         for session in sessions:
             session.contact_check(contact)
         for session in sessions:
             has_contact = session.get_next_response()
-            if isinstance(has_contact, Error):
+            if isinstance(has_contact.type, Error):
                 self._handle_session_error(session, has_contact)
             else:
-                print(f'Session "{session.name}": Contato encontrado!! 😈😈')
+                self.log(session, "😈 Contato encontrado !! 😈")
+        
+        while num_groups > 0:
+            for session in sessions:
+                self._create_group(session)
+            num_groups -= 1               
+        
+                
+    def _create_group(self, session: Session):
+        session.begin_group_creation()
         
     def _handle_session_error(self, session: Session, err: Error):
-        print(f'Session "{session.name}": ERRO - {err.value}')
+        self.log(session, f'🤔 ERRO - {err.type.value} 🤔 {f' -> {err.args['data']}' if 'data' in err.args.keys() else ''}')
         session.quit()
         
     def _load_sessions(self):
