@@ -68,12 +68,13 @@ class ManagerService:
         
         while num_groups > 0:
             for session in sessions:
-                self._create_group(session)
-            num_groups -= 1               
-        
+                self._create_group(session, contact)
+            num_groups -= 1
                 
-    def _create_group(self, session: Session):
+    def _create_group(self, session: Session, contact: str, file_path: str, group_name: str):
         session.begin_group_creation()
+        session.add_group_member(contact)
+        session.setup_group(file_path, group_name)
         
     def _handle_session_error(self, session: Session, err: Error):
         self.log(session, f'🤔 ERRO - {err.type.value} 🤔 {f' -> {err.args['data']}' if 'data' in err.args.keys() else ''}')
