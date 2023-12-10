@@ -1,5 +1,6 @@
 import os
 from threading import Thread
+import time
 import common.util as util
 import common.consts as consts
 import json
@@ -7,9 +8,12 @@ from common.enum import Error
 from manager.session import Session
 
 class Options:
-    def __init__(self, sessions: list[Session], contact: str):
+    def __init__(self, sessions: list[Session], contact: str, file_path: str, group_name: str, num_groups: int):
         self.sessions = sessions
         self.contact = contact
+        self.file_path = file_path
+        self.group_name = group_name
+        self.num_groups = num_groups
 
 class ManagerService:
     def __init__(self):
@@ -45,7 +49,9 @@ class ManagerService:
     def _run_script(self, options: Options):
         sessions = options.sessions
         contact = options.contact
-        num_groups = 1
+        file_path = options.file_path
+        group_name = options.group_name
+        num_groups = options.num_groups
         
         for session in sessions:
             session.run(headless=False)
@@ -66,10 +72,11 @@ class ManagerService:
             else:
                 self.log(session, "😈 Contato encontrado !! 😈")
         
-        while num_groups > 0:
+        for i in range(num_groups):
             for session in sessions:
-                self._create_group(session, contact)
-            num_groups -= 1
+                self._create_group(session, contact, file_path, group_name)
+                if i == 0:
+                    time.sleep(consts.SESSION_CREATE_GROUP_DESYNC)
                 
     def _create_group(self, session: Session, contact: str, file_path: str, group_name: str):
         session.begin_group_creation()
