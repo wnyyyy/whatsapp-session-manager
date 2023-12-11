@@ -5,7 +5,7 @@ import time
 import common.util as util
 import common.consts as consts
 import json
-from common.enum import EmojiGroup, Error
+from common.enum import CommandType, EmojiGroup, Error
 from manager.session import Session
 
 class GroupName:
@@ -96,14 +96,26 @@ class ManagerService:
     def _group_creation_listener(self, session: Session):
         counter = 0
         while True:
-            response = session.get_next_response()
-            if isinstance(response.type, Error):
-                self._handle_session_error(session, response)
+            begin_creation = session.get_next_response()
+            if isinstance(begin_creation.type, Error):
+                self._handle_session_error(session, begin_creation)
+                break
+            add_group_member = session.get_next_response()
+            if isinstance(add_group_member.type, Error):
+                self._handle_session_error(session, add_group_member)
+                break
+            setup_group = session.get_next_response()
+            if isinstance(setup_group.type, Error):
+                self._handle_session_error(session, setup_group)
+                break
+            elif isinstance(setup_group.command, CommandType.SETUP_GROUP):
+                counter += 1
+                emoji = self._get_emoji(EmojiGroup.PROGRESS)
+                self.log(session, f'{emoji} Grupo {counter} criado com sucesso !! {emoji}')
                 break
             else:
-                counter += 1
-                self.log(session, f'👍 Grupo criado com sucesso !! 👍 ({counter}/{len(self.sessions)})')
-                break
+                emoji = self._get_emoji(EmojiGroup.FAILURE)
+                self.log(session, f'{emoji} Algo errado?? {emoji}')
                     
     def _generate_group_name(self, group_name: GroupName):
         curr_name = random.choice(group_name.names) if len(group_name.names) > 0 else ''
