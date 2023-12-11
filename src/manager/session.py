@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 Command = namedtuple('Command', ['type', 'args'])
-Response = namedtuple('Response', ['type', 'args'])
+Response = namedtuple('Response', ['command', 'type', 'args'])
 
 class Session:    
     def __init__(self, name: str, number: str):
@@ -35,9 +35,6 @@ class Session:
     def get_next_response(self):
         return self._responses.get()
     
-    def has_response(self):
-        return not self._responses.empty()
-            
     def contact_check(self, contact: str):
         command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
         self._commands.put(command)
@@ -140,8 +137,8 @@ class Session:
         try:            
             WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
-                )
-            self._responses.put(Response({}, {}))
+                )         
+            self._responses.put(Response(CommandType.LOGIN, {}, {}))   
             self.lock.acquire()
             self.logged_in = True
             self.context = WhatsAppContext.HOME            
@@ -150,17 +147,17 @@ class Session:
                 WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
                 )
-                self._responses.put(Response({}, {}))
+                self._responses.put(Response(CommandType.LOGIN, {}, {}))
                 self.lock.acquire()
                 self.logged_in = False
-                self.context = WhatsAppContext.LANDING_PAGE                
+                self.context = WhatsAppContext.LANDING_PAGE
             except TimeoutException:
-                self._responses.put(Response(Error.DRIVER_ERROR, {}))
+                self._responses.put(Response(CommandType.LOGIN, Error.DRIVER_ERROR, {}))
                 self.lock.acquire()
                 self.logged_in = None
                 self.context = WhatsAppContext.NONE                
         except:
-            self._responses.put(Response(Error.DRIVER_ERROR, {}))
+            self._responses.put(Response(CommandType.LOGIN, Error.DRIVER_ERROR, {}))
         finally:
             if self.lock.locked():
                 self.lock.release()
@@ -169,7 +166,7 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.HOME:
-                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                self._responses.put(Response(CommandType.BEGIN_GROUP_CREATION, Error.UNEXPECTED_CONTEXT, {}))
                 return
             self.lock.release()
             time.sleep(consts.UI_INTERACTION_DELAY)
@@ -181,11 +178,11 @@ class Session:
             new_group_button = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="New group"]')))
             new_group_button.click()
-            self._responses.put(Response({}, {}))
+            self._responses.put(Response(CommandType.BEGIN_GROUP_CREATION, {}, {}))
             self.lock.acquire()
             self.context = WhatsAppContext.GROUP_MEMBERS_SELECT
         except TimeoutException:
-            self._responses.put(Response(Error.DRIVER_ERROR, {}))
+            self._responses.put(Response(CommandType.BEGIN_GROUP_CREATION, Error.DRIVER_ERROR, {}))
         finally:
             if self.lock.locked():
                 self.lock.release()
@@ -194,31 +191,33 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.GROUP_MEMBERS_SELECT:
-                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                self._responses.put(Response(CommandType.ADD_GROUP_MEMBER, Error.UNEXPECTED_CONTEXT, {}))
                 return
             self.lock.release()
             time.sleep(consts.UI_INTERACTION_DELAY)
             search_box = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="text"].copyable-text.selectable-text')))
-            search_box.send_keys(contact)
+            for c in contact:
+                search_box.send_keys(c)
+                time.sleep(consts.KEY_PRESS_DELAY)
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             try:
                 results_div = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[data-tab="4"]')))
             except:
-                self._responses.put(Response(Error.CONTACT_NOT_FOUND, {}))
+                self._responses.put(Response(CommandType.ADD_GROUP_MEMBER, Error.CONTACT_NOT_FOUND, {}))
                 return
             results_div = results_div.find_elements(By.XPATH, "././*")
             if len(results_div) > 1:
-                self._responses.put(Response(Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
+                self._responses.put(Response(CommandType.ADD_GROUP_MEMBER, Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
                 return
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             results_div[0].click()
-            self._responses.put(Response({}, {}))
+            self._responses.put(Response(CommandType.ADD_GROUP_MEMBER, {}, {}))
         except TimeoutException:
-            self._responses.put(Response(Error.DRIVER_ERROR, {}))
+            self._responses.put(Response(CommandType.ADD_GROUP_MEMBER, Error.DRIVER_ERROR, {}))
             return
         finally:
             if self.lock.locked():
@@ -228,7 +227,7 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.GROUP_MEMBERS_SELECT:
-                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                self._responses.put(Response(CommandType.SETUP_GROUP, Error.UNEXPECTED_CONTEXT, {}))
                 return
             self.lock.release()
             time.sleep(consts.UI_INTERACTION_DELAY)
@@ -262,19 +261,21 @@ class Session:
             name_input = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Group Subject (Optional)"]')))
             name_input = name_input.find_element(By.XPATH, "./*")
-            name_input.send_keys(name)
+            for c in name:
+                name_input.send_keys(c)
+                time.sleep(consts.KEY_PRESS_DELAY)
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             create_group = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="checkmark-medium"]')))
             create_group.click()
             
-            self._responses.put(Response({}, {}))
+            self._responses.put(Response(CommandType.SETUP_GROUP, {}, {}))
             
             self.lock.acquire()
             self.context = WhatsAppContext.HOME
         except TimeoutException:
-            self._responses.put(Response(Error.DRIVER_ERROR, {}))
+            self._responses.put(Response(CommandType.SETUP_GROUP, Error.DRIVER_ERROR, {}))
             return
         finally:
             if self.lock.locked():
@@ -284,35 +285,38 @@ class Session:
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.HOME:
-                self._responses.put(Response(Error.UNEXPECTED_CONTEXT, {}))
+                self._responses.put(Response(CommandType.CONTACT_CHECK, Error.UNEXPECTED_CONTEXT, {}))
                 return
-            
-            search_box = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Search input textbox"]')))
-            search_box.send_keys(contact)
-
-            side_pane = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.ID, 'pane-side')))
-
-            WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search results."]')))
-            search_results = side_pane.find_element(By.CSS_SELECTOR, '[aria-label="Search results."]')
-            if search_results is None:
-                self._responses.put(Response(Error.CONTACT_NOT_FOUND, {}))
-                return
-            search_results = search_results.find_elements(By.XPATH, "./*")            
-            if len(search_results) > 2:
-                self._responses.put(Response(Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
-                return
-            self._responses.put(Response({}, {}))
+            self.lock.release()
             
             time.sleep(consts.UI_INTERACTION_DELAY)
+            search_box = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Search input textbox"]')))
+            for c in contact:
+                search_box.send_keys(c)
+                time.sleep(consts.KEY_PRESS_DELAY)
+            time.sleep(consts.UI_INTERACTION_DELAY)
+            side_pane = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                EC.presence_of_element_located((By.ID, 'pane-side')))
+            try: 
+                WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Search results."]')))                
+            except TimeoutException:
+                self._responses.put(Response(CommandType.CONTACT_CHECK, Error.CONTACT_NOT_FOUND, {}))
+                return
+            search_results = side_pane.find_element(By.CSS_SELECTOR, '[aria-label="Search results."]')
+            search_results = search_results.find_elements(By.XPATH, "./*")    
+            if len(search_results) > 2:
+                self._responses.put(Response(CommandType.CONTACT_CHECK, Error.MORE_THAN_ONE_CONTACT_FOUND, {}))
+                return
             
+            time.sleep(consts.UI_INTERACTION_DELAY)            
             return_button = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="search"]')))
             return_button.click()
+            self._responses.put(Response(CommandType.CONTACT_CHECK, {}, {}))
         except:
-            self._responses.put(Response(Error.DRIVER_ERROR, {}))
+            self._responses.put(Response(CommandType.CONTACT_CHECK, Error.DRIVER_ERROR, {}))
         finally:
             if self.lock.locked():
                 self.lock.release()
