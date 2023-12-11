@@ -25,4 +25,4 @@ class Error(Enum):
 class EmojiGroup(Enum):
     SUCCESS = '💫🔨🔛🆗✅🌞🌈🥇👌👍💪👀🦉🐒'
     FAILURE = '⁉️🆘🛑❌💥🪠🩼🙊🧐🫣🫢😨🤔💤'
-    PROGRESS = '🔝💯🏴‍☠️✈️🍆🩻🎃🙅‍♂️🙅🥷💀😈👿😱🤡😜😝😎🤣🥵🥸🥳👹👽👻☠️🧙🎯⚒️💹🔻'
+    PROGRESS = '🔝💯✈️🍆🩻🎃🙅💀😈👿😱🤡😜😝😎🤣🥵🥸🥳👹👽👻☠️🧙🎯⚒️💹'
