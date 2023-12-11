@@ -28,4 +28,5 @@ class ExecuteButton:
             else:
                 if not session.running:
                     session.run()
+                    session.login()
         self.update_state(self.playing)

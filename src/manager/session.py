@@ -137,27 +137,28 @@ class Session:
                 self.lock.release()
         
     def _try_login(self):        
-        try:
-            self.lock.acquire()
-            self.logged_in = False
-            self.context = WhatsAppContext.LANDING_PAGE
-            self.lock.release()
+        try:            
             WebDriverWait(self.driver, consts.PAGE_LOAD_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
-            )
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
+                )
             self._responses.put(Response({}, {}))
+            self.lock.acquire()
+            self.logged_in = True
+            self.context = WhatsAppContext.HOME            
         except TimeoutException:
             try:
                 WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="profile photo"]'))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '.landing-title'))
                 )
                 self._responses.put(Response({}, {}))
                 self.lock.acquire()
-                self.logged_in = True
-                self.context = WhatsAppContext.HOME
+                self.logged_in = False
+                self.context = WhatsAppContext.LANDING_PAGE                
             except TimeoutException:
+                self._responses.put(Response(Error.DRIVER_ERROR, {}))
                 self.lock.acquire()
                 self.logged_in = None
+                self.context = WhatsAppContext.NONE                
         except:
             self._responses.put(Response(Error.DRIVER_ERROR, {}))
         finally:
