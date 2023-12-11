@@ -1,9 +1,11 @@
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout, QCheckBox
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout, QCheckBox, QComboBox
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIntValidator
 import re
 import common.consts as consts
 from gui.execute_button import ExecuteButton
 from common.enum import WhatsAppContext
+from manager.manager_service import Options
 
 class Menu(QMainWindow):
     def __init__(self, manager):
@@ -22,7 +24,7 @@ class Menu(QMainWindow):
         
         master_controls_layout = QHBoxLayout()
         master_controls_layout.setAlignment(Qt.AlignRight)
-        master_controls_layout.setContentsMargins(0, 0, 43, 0)
+        master_controls_layout.setContentsMargins(0, 0, 80, 0)
         master_controls_layout.setSpacing(5)
         self._master_checkbox = QCheckBox()
         self._master_checkbox.stateChanged.connect(self._handle_master_checkbox)
@@ -43,19 +45,44 @@ class Menu(QMainWindow):
         self.number_input.hide()   
         layout.addWidget(self.number_input)
         
-        self.run_script_button = QPushButton('Run Script', self)
-        self.run_script_button.clicked.connect(self.run_script)
-        layout.addWidget(self.run_script_button)
+        self.script_contact_input = QLineEdit(self)
+        self.script_contact_input.setPlaceholderText('Contact')
+        self.script_contact_input.hide()
+        layout.addWidget(self.script_contact_input)
+        
+        row_layout = QHBoxLayout()
+        
+        self.script_groups_input = QLineEdit(self)
+        self.script_groups_input.setPlaceholderText('Groups')
+        self.script_groups_input.setValidator(QIntValidator(1, 100))
+        self.script_groups_input.hide()
+        row_layout.addWidget(self.script_groups_input, 1)
+        
+        self.script_names_select = QComboBox(self)
+        self.script_names_select.addItems([x.display for x in self.manager.names])
+        self.script_names_select.hide()
+        row_layout.addWidget(self.script_names_select, 1)
+        layout.addLayout(row_layout)
 
+        self.run_script_button = QPushButton('Run Script', self)
+        self.run_script_button.clicked.connect(self.toggle_run_script)
+        self.is_running_script = False
+        layout.addWidget(self.run_script_button)
+        
+        self.cancel_run_script_button = QPushButton('Cancel', self)
+        self.cancel_run_script_button.clicked.connect(self.toggle_run_script)
+        self.cancel_run_script_button.hide()
+        layout.addWidget(self.cancel_run_script_button)        
+        
         self.create_button = QPushButton('Create Session', self)
         self.create_button.clicked.connect(self.toggle_create_session_view)
         layout.addWidget(self.create_button)
-        
+
         self.cancel_button = QPushButton('Cancel', self)
         self.cancel_button.clicked.connect(self.toggle_create_session_view)
         self.cancel_button.hide()
         layout.addWidget(self.cancel_button)
-        
+
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
@@ -172,9 +199,38 @@ class Menu(QMainWindow):
             self.create_button.clicked.disconnect()
             self.create_button.clicked.connect(self.save_session)
         self.is_creating_session = not self.is_creating_session
+        
+    def toggle_run_script(self):
+        if self.is_running_script:
+            self.script_contact_input.hide()
+            self.script_groups_input.hide()
+            self.script_names_select.hide()
+            self.cancel_run_script_button.hide()
+            self.create_button.show()
+            self.run_script_button.setText('Run Script')
+            self.run_script_button.clicked.disconnect()
+            self.run_script_button.clicked.connect(self.toggle_run_script)
+        else:
+            self.script_contact_input.show()
+            self.script_groups_input.show()
+            self.script_names_select.show()
+            self.cancel_run_script_button.show()
+            self.create_button.hide()
+            self.run_script_button.setText('Execute')
+            self.run_script_button.clicked.disconnect()
+            self.run_script_button.clicked.connect(self.run_script)
+        self.is_running_script = not self.is_running_script
 
     def run_script(self):
-        pass
+        sessions = []
+        for i, session in enumerate(self.manager.sessions):
+            if self._checkboxes[i].isChecked():
+                sessions.append(session)
+        contact = self.script_contact_input.text()
+        group_name = self.script_names_select.currentText()
+        num_groups = int(self.script_groups_input.text())                
+        options = Options(sessions, contact, group_name, num_groups)
+        self.manager.run_script(options)
     
     def _handle_master_checkbox(self):
         new_state = self._master_checkbox.isChecked()
