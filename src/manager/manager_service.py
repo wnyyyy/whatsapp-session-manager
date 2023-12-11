@@ -1,4 +1,5 @@
 import os
+import random
 from threading import Thread
 import time
 import common.util as util
@@ -14,11 +15,18 @@ class Options:
         self.file_path = file_path
         self.group_name = group_name
         self.num_groups = num_groups
+        
+class GroupName:
+    def __init__(self, display: str, names: list[str], random_chars: list[str]):
+        self.display = display
+        self.names = names
+        self.random_chars = random_chars
 
 class ManagerService:
     def __init__(self):
         self.sessions = []
         self._load_sessions()
+        self._load_names_json()
         
     def create_session(self, session_name, session_number):
         session_path = util.get_session_path(session_name)
@@ -77,6 +85,18 @@ class ManagerService:
                 self._create_group(session, contact, file_path, group_name)
                 if i == 0:
                     time.sleep(consts.SESSION_CREATE_GROUP_DESYNC)
+                    
+    def _generate_group_name(self, group_name: GroupName):
+        curr_name = random.choice(group_name.names) if len(group_name.names) > 0 else ''
+        prev_rnd = ''
+        while '{r}' in curr_name:
+            curr_rnd = random.choice(group_name.random_chars)
+            if len(group_name.random_chars) > 1:                
+                while curr_rnd == prev_rnd:
+                    curr_rnd = random.choice(group_name.random_chars)
+            curr_name = curr_name.replace('{r}', curr_rnd, 1)
+            prev_rnd = curr_rnd
+        return curr_name
                 
     def _create_group(self, session: Session, contact: str, file_path: str, group_name: str):
         session.begin_group_creation()
@@ -91,10 +111,10 @@ class ManagerService:
         config_path = consts.WORK_DIR + '/config.json'
         sessions = []
         if not os.path.exists(config_path):
-            with open(config_path, 'w') as file:
+            with open(config_path, 'w', encoding="utf-8") as file:
                 json.dump([], file)
         else:
-            with open(config_path, 'r') as file:
+            with open(config_path, 'r', encoding="utf-8") as file:
                 sessions = json.load(file)
         for session in sessions:
             s = Session(session['name'], session['number'])
@@ -108,3 +128,20 @@ class ManagerService:
             csv_str += (f'Bot {util.format_name(session.name)},Bot {util.format_name(session.name)},,,,,,,,,,,,,,,,,,,,,,,,,,,* myContacts,Mobile,{util.format_number(session.number)}\n')
         with open(csv_path, 'w') as file:
             file.write(csv_str)
+            
+    def _load_names_json(self):
+        names_path = consts.WORK_DIR + '/names.json'
+        if not os.path.exists(names_path):
+            default_names = [
+                GroupName('satanas', ['{r}'*15, '{r}'*17, '{r}'*19, '{r}'*21, '{r}'*23, '{r}'*25], 
+                          ['𓂀','𓁿','⸸','◬','𖤍','👹','💀','☠️','👿','👁️⃤','𐌰','פ','ש','ל','𐕣','𐕣','𐕣','𐕣','⁶⁶⁶','𖤐','𓃶','⚚','🜏','𖤐','𖤐','ק','רק','ת','ᚨ','ᛉ','ץ','נ','פ','ש','Ⲋ','𓅓','Ⲁ','ⲁ','𐌌','ﭏ','𐌸','𐍉','צ','ס','ן','𐍆','𐍁','𐌳','𐌶','𐌼']).__dict__]
+                        
+            with open(names_path, 'w', encoding="utf-8") as file:
+                json.dump(default_names, file, indent=2, ensure_ascii=False)        
+        with open(names_path, 'r', encoding="utf-8") as file:
+            self.names = json.load(file)
+            names_obj = []
+            for name in self.names:
+                name = GroupName(**name)
+                names_obj.append(name)
+            self.names = names_obj
