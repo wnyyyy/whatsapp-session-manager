@@ -8,19 +8,18 @@ import json
 from common.enum import Error
 from manager.session import Session
 
-class Options:
-    def __init__(self, sessions: list[Session], contact: str, file_path: str, group_name: str, num_groups: int):
-        self.sessions = sessions
-        self.contact = contact
-        self.file_path = file_path
-        self.group_name = group_name
-        self.num_groups = num_groups
-        
 class GroupName:
     def __init__(self, display: str, names: list[str], random_chars: list[str]):
         self.display = display
         self.names = names
         self.random_chars = random_chars
+
+class Options:
+    def __init__(self, sessions: list[Session], contact: str, group_id: str, num_groups: int):
+        self.sessions = sessions
+        self.contact = contact
+        self.group_id = group_id
+        self.num_groups = num_groups
 
 class ManagerService:
     def __init__(self):
@@ -57,9 +56,11 @@ class ManagerService:
     def _run_script(self, options: Options):
         sessions = options.sessions
         contact = options.contact
-        file_path = options.file_path
-        group_name = options.group_name
+        group_id = options.group_id
         num_groups = options.num_groups
+        group = [x for x in self.names if x.display == group_id][0]
+        icons = self._get_group_icons(group)
+        curr_icon = 0
         
         for session in sessions:
             session.run(headless=False)
@@ -82,7 +83,11 @@ class ManagerService:
         
         for i in range(num_groups):
             for session in sessions:
-                self._create_group(session, contact, file_path, group_name)
+                icon = None
+                if len(icons) > 0:
+                    icon = icons[curr_icon % len(icons)]
+                    curr_icon += 1
+                self._create_group(session, contact, icon, self._generate_group_name(group))
                 if i == 0:
                     time.sleep(consts.SESSION_CREATE_GROUP_DESYNC)
                     
@@ -97,11 +102,17 @@ class ManagerService:
             curr_name = curr_name.replace('{r}', curr_rnd, 1)
             prev_rnd = curr_rnd
         return curr_name
+    
+    def _get_group_icons(self, group_name: GroupName):
+        icons_folder = consts.WORK_DIR + '/icons/' + group_name.display
+        icons = [f for f in os.listdir(icons_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp'))]
+        icons_path = [os.path.join(icons_folder, f) for f in icons]
+        return icons_path
                 
-    def _create_group(self, session: Session, contact: str, file_path: str, group_name: str):
+    def _create_group(self, session: Session, contact: str, icon_path: str, group_name: str):
         session.begin_group_creation()
         session.add_group_member(contact)
-        session.setup_group(file_path, group_name)
+        session.setup_group(icon_path, group_name)
         
     def _handle_session_error(self, session: Session, err: Error):
         self.log(session, f'🤔 ERRO - {err.type.value} 🤔 {f' -> {err.args['data']}' if 'data' in err.args.keys() else ''}')

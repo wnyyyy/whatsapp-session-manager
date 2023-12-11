@@ -223,7 +223,7 @@ class Session:
             if self.lock.locked():
                 self.lock.release()
     
-    def _setup_group(self, icon_path: str, name: str):
+    def _setup_group(self, icon_path: str | None, name: str):
         try:
             self.lock.acquire()
             if self.context != WhatsAppContext.GROUP_MEMBERS_SELECT:
@@ -239,22 +239,23 @@ class Session:
             self.context = WhatsAppContext.GROUP_OPTIONS
             self.lock.release()
             
-            time.sleep(consts.UI_INTERACTION_DELAY)            
-            file_input = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[type="file"]')))
-            file_input.send_keys(icon_path)
-            
-            time.sleep(consts.UI_INTERACTION_DELAY)
-            minus_zoom = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="minus"]')))
-            for _ in range(0, 5):
-                time.sleep(0.05)
-                minus_zoom.click()
+            if icon_path is not None:            
+                time.sleep(consts.UI_INTERACTION_DELAY)            
+                file_input = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[type="file"]')))
+                file_input.send_keys(icon_path)
                 
-            time.sleep(consts.UI_INTERACTION_DELAY)
-            submit_image = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Submit image"]')))
-            submit_image.click()
+                time.sleep(consts.UI_INTERACTION_DELAY)
+                minus_zoom = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-icon="minus"]')))
+                for _ in range(0, 5):
+                    time.sleep(0.05)
+                    minus_zoom.click()
+                    
+                time.sleep(consts.UI_INTERACTION_DELAY)
+                submit_image = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Submit image"]')))
+                submit_image.click()
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             name_input = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
