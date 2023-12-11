@@ -5,7 +5,7 @@ import time
 import common.util as util
 import common.consts as consts
 import json
-from common.enum import Error
+from common.enum import EmojiGroup, Error
 from manager.session import Session
 
 class GroupName:
@@ -70,7 +70,8 @@ class ManagerService:
             if isinstance(has_logged_in.type, Error):
                 self._handle_session_error(session, has_logged_in)
             else:
-                self.log(session, "💫 Logado com sucesso !! 💫")
+                emoji = self._get_emoji(EmojiGroup.SUCCESS)
+                self.log(session, f'{emoji} Logado com sucesso !! {emoji}')
                 
         for session in sessions:
             session.contact_check(contact)
@@ -79,7 +80,8 @@ class ManagerService:
             if isinstance(has_contact.type, Error):
                 self._handle_session_error(session, has_contact)
             else:
-                self.log(session, "😈 Contato encontrado !! 😈")
+                emoji = self._get_emoji(EmojiGroup.PROGRESS)
+                self.log(session, f'{emoji} Contato encontrado !! {emoji}')
         
         for i in range(num_groups):
             for session in sessions:
@@ -90,6 +92,18 @@ class ManagerService:
                 self._create_group(session, contact, icon, self._generate_group_name(group))
                 if i == 0:
                     time.sleep(consts.SESSION_CREATE_GROUP_DESYNC)
+                    
+    def _group_creation_listener(self, session: Session):
+        counter = 0
+        while True:
+            response = session.get_next_response()
+            if isinstance(response.type, Error):
+                self._handle_session_error(session, response)
+                break
+            else:
+                counter += 1
+                self.log(session, f'👍 Grupo criado com sucesso !! 👍 ({counter}/{len(self.sessions)})')
+                break
                     
     def _generate_group_name(self, group_name: GroupName):
         curr_name = random.choice(group_name.names) if len(group_name.names) > 0 else ''
@@ -115,7 +129,8 @@ class ManagerService:
         session.setup_group(icon_path, group_name)
         
     def _handle_session_error(self, session: Session, err: Error):
-        self.log(session, f'🤔 ERRO - {err.type.value} 🤔 {f' -> {err.args['data']}' if 'data' in err.args.keys() else ''}')
+        emoji = self._get_emoji(EmojiGroup.FAILURE)
+        self.log(session, f'{emoji} ERRO - {err.type.value} {emoji} {f' -> {err.args['data']}' if 'data' in err.args.keys() else ''}')
         session.quit()
         
     def _load_sessions(self):
@@ -136,7 +151,8 @@ class ManagerService:
         csv_path = consts.WORK_DIR + '/contacts.csv'
         csv_str = consts.CSV_HEADER
         for session in self.sessions:
-            csv_str += (f'Bot {util.format_name(session.name)},Bot {util.format_name(session.name)},,,,,,,,,,,,,,,,,,,,,,,,,,,* myContacts,Mobile,{util.format_number(session.number)}\n')
+            csv_str += (
+                f'Bot {util.format_name(session.name)},Bot {util.format_name(session.name)},,,,,,,,,,,,,,,,,,,,,,,,,,,* myContacts,Mobile,{util.format_number(session.number)}\n')
         with open(csv_path, 'w') as file:
             file.write(csv_str)
             
@@ -145,7 +161,8 @@ class ManagerService:
         if not os.path.exists(names_path):
             default_names = [
                 GroupName('satanas', ['{r}'*15, '{r}'*17, '{r}'*19, '{r}'*21, '{r}'*23, '{r}'*25], 
-                          ['𓂀','𓁿','⸸','◬','𖤍','👹','💀','☠️','👿','👁️⃤','𐌰','פ','ש','ל','𐕣','𐕣','𐕣','𐕣','⁶⁶⁶','𖤐','𓃶','⚚','🜏','𖤐','𖤐','ק','רק','ת','ᚨ','ᛉ','ץ','נ','פ','ש','Ⲋ','𓅓','Ⲁ','ⲁ','𐌌','ﭏ','𐌸','𐍉','צ','ס','ן','𐍆','𐍁','𐌳','𐌶','𐌼']).__dict__]
+                          ['𓂀','𓁿','⸸','◬','𖤍','👹','💀','☠️','👿','👁️⃤','𐌰','פ','ש','ל','𐕣','𐕣','𐕣','𐕣',
+                           '⁶⁶⁶','𖤐','𓃶','⚚','🜏','𖤐','𖤐','ק','רק','ת','ᚨ','ᛉ','ץ','נ','פ','ש','Ⲋ','𓅓','Ⲁ','ⲁ','𐌌','ﭏ','𐌸','𐍉','צ','ס','ן','𐍆','𐍁','𐌳','𐌶','𐌼']).__dict__]
                         
             with open(names_path, 'w', encoding="utf-8") as file:
                 json.dump(default_names, file, indent=2, ensure_ascii=False)        
@@ -156,3 +173,6 @@ class ManagerService:
                 name = GroupName(**name)
                 names_obj.append(name)
             self.names = names_obj
+            
+    def _get_emoji(self, emoji: EmojiGroup):
+        return emoji.value[random.randint(0, len(EmojiGroup.SUCCESS.value)-1)]

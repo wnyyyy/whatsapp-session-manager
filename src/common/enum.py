@@ -22,3 +22,7 @@ class Error(Enum):
     CONTACT_NOT_FOUND = "Contato não encontrado"
     MORE_THAN_ONE_CONTACT_FOUND = "Mais de um contato encontrado (erro???)"
     
+class EmojiGroup(Enum):
+    SUCCESS = '💫🔨🔛🆗✅🌞🌈🥇👌👍💪👀🦉🐒'
+    FAILURE = '⁉️🆘🛑❌💥🪠🩼🙊🧐🫣🫢😨🤔'
+    PROGRESS = '🔝💯🏴‍☠️✈️🍆🩻🎃🙅‍♂️🙅🥷💀😈👿😱🤡😜😝'
