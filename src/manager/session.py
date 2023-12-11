@@ -5,12 +5,13 @@ import common.consts as consts
 import common.util as util
 from queue import Queue
 from common.enum import CommandType, WhatsAppContext, Error
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver import ChromeOptions, Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 Command = namedtuple('Command', ['type', 'args'])
 Response = namedtuple('Response', ['command', 'type', 'args'])
@@ -82,10 +83,9 @@ class Session:
             chrome_options.add_argument('--disable-extensions')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument("user-agent=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36")
-            chrome_options.add_argument(f'--executable-path={consts.WORK_DIR}/chromedriver.exe')
             chrome_options.add_argument(f'--user-data-dir={session_path}')
                 
-            driver = Chrome(options=chrome_options)
+            driver = Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             driver.get('https://web.whatsapp.com')            
             
@@ -258,12 +258,20 @@ class Session:
                 submit_image.click()
             
             time.sleep(consts.UI_INTERACTION_DELAY)
-            name_input = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
+            WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[title="Group Subject (Optional)"]')))
-            name_input = name_input.find_element(By.XPATH, "./*")
-            for c in name:
-                name_input.send_keys(c)
-                time.sleep(consts.KEY_PRESS_DELAY)
+            script = """
+                function write(selector, name) {
+                    window.InputEvent = window.Event || window.InputEvent;
+                    var event = new InputEvent('input', {bubbles: true});
+                    var text = document.querySelector(selector);
+                    text.focus();
+                    document.execCommand('insertText', false, name);
+                    text.dispatchEvent(new Event('change', { bubbles: true }))
+                }
+                write(arguments[0], arguments[1]);
+            """
+            self.driver.execute_script(script, '[title="Group Subject (Optional)"]', name)
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             create_group = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
