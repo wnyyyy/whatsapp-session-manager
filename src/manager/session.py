@@ -36,6 +36,9 @@ class Session:
     def get_next_response(self):
         return self._responses.get()
     
+    def get_next_response_nowait(self):
+        return self._responses.get_nowait()
+    
     def contact_check(self, contact: str):
         command = Command(CommandType.CONTACT_CHECK, {'contact': contact})
         self._commands.put(command)
@@ -256,6 +259,7 @@ class Session:
                 submit_image = WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Submit image"]')))
                 submit_image.click()
+                time.sleep(consts.UPLOAD_IMAGE_DELAY)
             
             time.sleep(consts.UI_INTERACTION_DELAY)
             WebDriverWait(self.driver, consts.DEFAULT_TIMEOUT_SECONDS).until(

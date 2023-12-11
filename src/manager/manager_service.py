@@ -26,6 +26,7 @@ class ManagerService:
         self.sessions = []
         self._load_sessions()
         self._load_names_json()
+        self._terminate_listeners = False
         
     def create_session(self, session_name, session_number):
         session_path = util.get_session_path(session_name)
@@ -60,10 +61,11 @@ class ManagerService:
         num_groups = options.num_groups
         group = [x for x in self.names if x.display == group_id][0]
         icons = self._get_group_icons(group)
+        random.shuffle(icons)
         curr_icon = 0
         
         for session in sessions:
-            session.run(headless=False)
+            session.run(headless=True)
             session.login()
         for session in sessions:
             has_logged_in = session.get_next_response()
@@ -82,6 +84,12 @@ class ManagerService:
             else:
                 emoji = self._get_emoji(EmojiGroup.PROGRESS)
                 self.log(session, f'{emoji} Contato encontrado !! {emoji}')
+                
+        listeners = []
+        for session in sessions:
+            listener_thread = Thread(target=self._group_creation_listener, args=(session,))
+            listeners.append(listener_thread)
+            listener_thread.start()
         
         for i in range(num_groups):
             for session in sessions:
@@ -92,30 +100,40 @@ class ManagerService:
                 self._create_group(session, contact, icon, self._generate_group_name(group))
                 if i == 0:
                     time.sleep(consts.SESSION_CREATE_GROUP_DESYNC)
+        self._terminate_listeners = True                    
+        for session in sessions:
+            session.quit()            
+        for listener in listeners:
+            listener.join()
                     
     def _group_creation_listener(self, session: Session):
         counter = 0
-        while True:
-            begin_creation = session.get_next_response()
+        while self._terminate_listeners == False:
+            begin_creation = session.get_next_response_nowait()
             if isinstance(begin_creation.type, Error):
                 self._handle_session_error(session, begin_creation)
                 break
-            add_group_member = session.get_next_response()
+            emoji = self._get_emoji(EmojiGroup.PROGRESS)
+            self.log(session, f'{emoji} Iniciando criação de grupo ... {emoji}')
+            add_group_member = session.get_next_response_nowait()
             if isinstance(add_group_member.type, Error):
                 self._handle_session_error(session, add_group_member)
                 break
-            setup_group = session.get_next_response()
+            emoji = self._get_emoji(EmojiGroup.PROGRESS)
+            self.log(session, f'{emoji} Configurando grupo ... {emoji}')
+            setup_group = session.get_next_response_nowait()
             if isinstance(setup_group.type, Error):
                 self._handle_session_error(session, setup_group)
                 break
-            elif isinstance(setup_group.command, CommandType.SETUP_GROUP):
+            if isinstance(setup_group.command, CommandType.SETUP_GROUP):
                 counter += 1
                 emoji = self._get_emoji(EmojiGroup.PROGRESS)
-                self.log(session, f'{emoji} Grupo {counter} criado com sucesso !! {emoji}')
+                self.log(session, f'{emoji} Grupo {counter} criado !! {emoji}')
                 break
             else:
                 emoji = self._get_emoji(EmojiGroup.FAILURE)
                 self.log(session, f'{emoji} Algo errado?? {emoji}')
+            time.sleep(consts.COMMAND_READ_DELAY)
                     
     def _generate_group_name(self, group_name: GroupName):
         curr_name = random.choice(group_name.names) if len(group_name.names) > 0 else ''
@@ -172,9 +190,10 @@ class ManagerService:
         names_path = consts.WORK_DIR + '/names.json'
         if not os.path.exists(names_path):
             default_names = [
-                GroupName('satanas', ['{r}'*15, '{r}'*17, '{r}'*19, '{r}'*21, '{r}'*23, '{r}'*25], 
+                GroupName('satanas', ['{r}'*17, '{r}'*18, '{r}'*19, '{r}'*20, '{r}'*21, '{r}'*22], 
                           ['𓂀','𓁿','⸸','◬','𖤍','👹','💀','☠️','👿','👁️⃤','𐌰','פ','ש','ל','𐕣','𐕣','𐕣','𐕣',
-                           '⁶⁶⁶','𖤐','𓃶','⚚','🜏','𖤐','𖤐','ק','רק','ת','ᚨ','ᛉ','ץ','נ','פ','ש','Ⲋ','𓅓','Ⲁ','ⲁ','𐌌','ﭏ','𐌸','𐍉','צ','ס','ן','𐍆','𐍁','𐌳','𐌶','𐌼']).__dict__]
+                           '⁶⁶⁶','𖤐','𓃶','⚚','🜏','𖤐','𖤐','ק','רק','ת','ᚨ','ᛉ','ץ','נ','פ','ש','Ⲋ','𓅓','Ⲁ','ⲁ','𐌌','ﭏ','𐌸','𐍉','צ','ס','ן','𐍆','𐍁','𐌳','𐌶','𐌼',
+                           'الضب','دمويلت','همك','،س','تمو','تفي','غضون','عش','أ','يام','بسبب','الضب','اب','الض','ويللغ','اية']).__dict__]
                         
             with open(names_path, 'w', encoding="utf-8") as file:
                 json.dump(default_names, file, indent=2, ensure_ascii=False)        
