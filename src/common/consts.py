@@ -9,6 +9,6 @@ KEY_PRESS_DELAY = 0.02
 UPLOAD_IMAGE_DELAY = 1
 
 UI_REFRESH_RATE = 500
-SESSION_CREATE_GROUP_DESYNC = 1
+SESSION_CREATE_GROUP_DESYNC = 0.25
 
 CSV_HEADER = 'Name,Given Name,Additional Name,Family Name,Yomi Name,Given Name Yomi,Additional Name Yomi,Family Name Yomi,Name Prefix,Name Suffix,Initials,Nickname,Short Name,Maiden Name,Birthday,Gender,Location,Billing Information,Directory Server,Mileage,Occupation,Hobby,Sensitivity,Priority,Subject,Notes,Language,Photo,Group Membership,Phone 1 - Type,Phone 1 - Value\n'
